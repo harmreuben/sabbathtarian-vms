@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # 2. Redis (For Celery Task Queue)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  # 3. Django Backend (Gunicorn)
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    command: gunicorn --bind 0.0.0.0:8000 config.wsgi:application
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+
+  # 4. Celery Worker (For Background tasks like SMS/Emails)
+  celery:
+    build: ./backend
+    restart: unless-stopped
+    command: celery -A config worker -l info --pool=solo
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./.env
+    depends_on:
+      - backend
+      - redis
+
+  # 5. Frontend (React + Nginx)
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
