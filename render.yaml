@@ -3,10 +3,6 @@ databases:
     databaseName: sabbathtarian_db
     ipAllowList: []
 
-  - name: vms-redis
-    type: redis
-    ipAllowList: []
-
 services:
   - type: web
     name: vms-backend
@@ -23,16 +19,8 @@ services:
         fromDatabase:
           name: vms-postgres
           property: connectionString
-      - key: CELERY_BROKER_URL
-        fromDatabase:
-          name: vms-redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromDatabase:
-          name: vms-redis
-          property: connectionString
       - key: ALLOWED_HOSTS
-        value: "vms-backend.onrender.com"
+        value: "*"
       - key: FRONTEND_URL
         value: "https://vms-frontend.onrender.com"
 
