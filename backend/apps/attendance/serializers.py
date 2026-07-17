@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Attendance
+from .models import Attendance, ScanLog
 from apps.visitors.models import Visitor
 
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -11,3 +11,10 @@ class AttendanceSerializer(serializers.ModelSerializer):
         model = Attendance
         fields = '__all__'
         read_only_fields = ('id', 'checked_in_by', 'check_in_time', 'is_deleted', 'deleted_at')
+
+class ScanLogSerializer(serializers.ModelSerializer):
+    visitor_name = serializers.CharField(source='visitor.full_name', read_only=True, default='Unknown')
+
+    class Meta:
+        model = ScanLog
+        fields = '__all__'

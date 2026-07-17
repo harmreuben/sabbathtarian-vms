@@ -2,14 +2,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './store/AuthContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import MainLayout from './components/layout/MainLayout';
+
 import Login from './features/auth/Login';
 import Dashboard from './features/dashboard/Dashboard';
 import VisitorRegistration from './features/visitors/VisitorRegistration';
 import CheckIn from './features/checkin/CheckIn';
+import SelfCheckInKiosk from './features/checkin/SelfCheckInKiosk';
 import FollowUpList from './features/followups/FollowUpList';
+import SendBroadcast from './features/communication/SendBroadcast';
 import AnalyticsDashboard from './features/reports/AnalyticsDashboard';
 
-// Create a client for React Query
 const queryClient = new QueryClient();
 
 function App() {
@@ -20,27 +23,48 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             
+            {/* Kiosk Route (Outside Main Layout for Full Screen) */}
+            <Route path="/kiosk" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST', 'SECURITY']}>
+                <SelfCheckInKiosk />
+              </ProtectedRoute>
+            } />
+
+            {/* Standard App Routes (Inside Main Layout) */}
             <Route path="/dashboard" element={
-              <ProtectedRoute><Dashboard /></ProtectedRoute>
+              <ProtectedRoute>
+                <MainLayout><Dashboard /></MainLayout>
+              </ProtectedRoute>
             } />
-
-            
-            <Route path="/reports" element={
-             <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR']}><AnalyticsDashboard /></ProtectedRoute>
-            } />
-
-
-            <Route path="/followups" element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR', 'FOLLOWUP']}><FollowUpList /></ProtectedRoute>
-            } />
-
             
             <Route path="/visitors/new" element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST']}><VisitorRegistration /></ProtectedRoute>
+              <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST']}>
+                <MainLayout><VisitorRegistration /></MainLayout>
+              </ProtectedRoute>
             } />
 
             <Route path="/checkin" element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST', 'SECURITY']}><CheckIn /></ProtectedRoute>
+              <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST', 'SECURITY']}>
+                <MainLayout><CheckIn /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/followups" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR', 'FOLLOWUP']}>
+                <MainLayout><FollowUpList /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/communication/broadcast" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR']}>
+                <MainLayout><SendBroadcast /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/reports" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR']}>
+                <MainLayout><AnalyticsDashboard /></MainLayout>
+              </ProtectedRoute>
             } />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

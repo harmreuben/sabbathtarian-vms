@@ -30,7 +30,7 @@ class Visitor(SafeDeleteModel):
     email = models.EmailField(blank=True, null=True)
     physical_address = models.TextField(blank=True)
     
-    # Location Details (Kenya context based on prompt)
+    # Location Details
     country = models.CharField(max_length=100, default='Kenya')
     county = models.CharField(max_length=100, blank=True)
     sub_county = models.CharField(max_length=100, blank=True)
@@ -65,6 +65,7 @@ class Visitor(SafeDeleteModel):
     # System Fields
     registered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='registered_visitors')
     gps_location = models.CharField(max_length=100, blank=True, null=True, help_text="Stored as 'lat, lng' string")
+    is_qr_active = models.BooleanField(default=True, help_text="Set to False to revoke a compromised QR code")
 
     class Meta:
         db_table = 'visitors'
