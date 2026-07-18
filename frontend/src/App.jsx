@@ -6,12 +6,21 @@ import MainLayout from './components/layout/MainLayout';
 
 import Login from './features/auth/Login';
 import Dashboard from './features/dashboard/Dashboard';
+
+// Visitor Modules
+import VisitorList from './features/visitors/VisitorList';
+import VisitorProfile from './features/visitors/VisitorProfile';
 import VisitorRegistration from './features/visitors/VisitorRegistration';
+
+// Check-in Modules
 import CheckIn from './features/checkin/CheckIn';
 import SelfCheckInKiosk from './features/checkin/SelfCheckInKiosk';
+
+// Other Modules
 import FollowUpList from './features/followups/FollowUpList';
 import SendBroadcast from './features/communication/SendBroadcast';
 import AnalyticsDashboard from './features/reports/AnalyticsDashboard';
+import Settings from './features/settings/Settings'; // Added Settings
 
 const queryClient = new QueryClient();
 
@@ -37,6 +46,18 @@ function App() {
               </ProtectedRoute>
             } />
             
+            <Route path="/visitors" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR', 'RECEPTIONIST', 'FOLLOWUP']}>
+                <MainLayout><VisitorList /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/visitors/:id" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR', 'RECEPTIONIST', 'FOLLOWUP']}>
+                <MainLayout><VisitorProfile /></MainLayout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/visitors/new" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'RECEPTIONIST']}>
                 <MainLayout><VisitorRegistration /></MainLayout>
@@ -64,6 +85,13 @@ function App() {
             <Route path="/reports" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR']}>
                 <MainLayout><AnalyticsDashboard /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Added Settings Route */}
+            <Route path="/settings" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'PASTOR']}>
+                <MainLayout><Settings /></MainLayout>
               </ProtectedRoute>
             } />
 

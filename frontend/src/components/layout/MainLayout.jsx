@@ -2,22 +2,26 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { 
   LayoutDashboard, 
+  Users, 
   UserPlus, 
   ScanLine, 
   ListChecks, 
   Send, 
   BarChart3, 
+  Settings2, // Added Settings2 icon
   LogOut, 
   Church 
 } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'PASTOR', 'RECEPTIONIST', 'FOLLOWUP', 'SECURITY'] },
+  { name: 'Visitor Directory', path: '/visitors', icon: Users, roles: ['ADMIN', 'PASTOR', 'RECEPTIONIST', 'FOLLOWUP'] },
   { name: 'Register Visitor', path: '/visitors/new', icon: UserPlus, roles: ['ADMIN', 'RECEPTIONIST'] },
   { name: 'Check-in Kiosk', path: '/checkin', icon: ScanLine, roles: ['ADMIN', 'RECEPTIONIST', 'SECURITY'] },
   { name: 'Follow-ups', path: '/followups', icon: ListChecks, roles: ['ADMIN', 'PASTOR', 'FOLLOWUP'] },
   { name: 'Broadcasts', path: '/communication/broadcast', icon: Send, roles: ['ADMIN', 'PASTOR'] },
   { name: 'Analytics', path: '/reports', icon: BarChart3, roles: ['ADMIN', 'PASTOR'] },
+  { name: 'Settings', path: '/settings', icon: Settings2, roles: ['ADMIN', 'PASTOR'] }, // Added Settings
 ];
 
 export default function MainLayout({ children }) {

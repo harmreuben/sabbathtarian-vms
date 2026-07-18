@@ -1,119 +1,158 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { visitorsApi } from './api';
-
-function ProfileSkeleton() {
-  return (
-    <div className="animate-pulse space-y-6">
-      <div className="h-8 w-1/3 rounded bg-gray-300 dark:bg-gray-700"></div>
-      <div className="h-4 w-1/2 rounded bg-gray-300 dark:bg-gray-700"></div>
-      <div className="grid grid-cols-2 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-16 rounded-lg bg-gray-300 dark:bg-gray-700"></div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const InfoCard = ({ title, children }) => (
-  <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-    <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{title}</h3>
-    <div className="space-y-3">{children}</div>
-  </div>
-);
-
-const Field = ({ label, value }) => (
-  <div>
-    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</dt>
-    <dd className="mt-1 text-sm text-gray-900 dark:text-white">{value || '—'}</dd>
-  </div>
-);
+import { useAuth } from '../../hooks/useAuth';
+import { QRCodeCanvas } from 'qrcode.react';
+import VisitorBadge from '../../components/badges/VisitorBadge';
+import { ArrowLeft, Download, Printer, RefreshCw, ShieldAlert, Loader2 } from 'lucide-react';
 
 export default function VisitorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const { data: visitor, isLoading, isError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['visitor', id],
     queryFn: () => visitorsApi.getVisitor(id),
-    enabled: !!id,
   });
 
-  if (isLoading) return <div className="p-8"><ProfileSkeleton /></div>;
-  if (isError) return <div className="p-8 text-center text-red-500">Failed to load visitor profile.</div>;
+  const regenerateMutation = useMutation({
+    mutationFn: () => visitorsApi.regenerateQR(id),
+    onSuccess: () => {
+      alert('QR Code regenerated successfully!');
+      window.location.reload();
+    },
+    onError: () => alert('Failed to regenerate QR code.')
+  });
 
-  const v = visitor?.data;
-  if (!v) return null;
+  if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin h-8 w-8 text-brand-500" /></div>;
+
+  const visitor = data?.data;
+  if (!visitor) return <div className="text-center p-10 text-gray-500">Visitor not found.</div>;
+
+  const downloadQR = () => {
+    const canvas = document.getElementById('profile-qr-canvas');
+    if (canvas) {
+      const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+      const downloadLink = document.createElement('a');
+      downloadLink.href = pngUrl;
+      downloadLink.download = `${visitor.registration_number}_QR.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <button 
-          onClick={() => navigate('/visitors')}
-          className="mb-6 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400"
-        >
-          <svg className="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          Back to Directory
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <button onClick={() => navigate('/visitors')} className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Directory
         </button>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Visitor Profile</h1>
+      </div>
 
-        <div className="mb-8 flex items-center space-x-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-3xl font-bold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
-            {v.full_name.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{v.full_name}</h1>
-            <p className="mt-1 text-lg text-gray-500 dark:text-gray-400">{v.registration_number}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column: QR & Badges */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-premium border border-gray-100 dark:border-gray-800 p-6 text-center">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Visitor QR Code</h3>
+            <div className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded-xl mb-4">
+              <QRCodeCanvas 
+                id="profile-qr-canvas"
+                value={visitor.qr_code_hash} 
+                size={160}
+                level="H"
+                includeMargin={true}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button onClick={downloadQR} className="flex items-center justify-center py-2 px-3 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <Download className="h-3 w-3 mr-1" /> Download
+              </button>
+              <button onClick={() => window.print()} className="flex items-center justify-center py-2 px-3 border border-transparent rounded-lg text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 transition-colors">
+                <Printer className="h-3 w-3 mr-1" /> Print Badge
+              </button>
+            </div>
+
+            {/* Admin Only: Regenerate QR */}
+            {user?.role === 'ADMIN' && (
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                <button 
+                  onClick={() => {
+                    if (window.confirm('Are you sure? This will invalidate the old QR code immediately.')) {
+                      regenerateMutation.mutate();
+                    }
+                  }}
+                  disabled={regenerateMutation.isPending}
+                  className="w-full flex items-center justify-center py-2 px-3 border border-red-200 text-red-700 dark:border-red-900/50 dark:text-red-400 rounded-lg text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  {regenerateMutation.isPending ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                  Regenerate QR Code
+                </button>
+                <p className="text-xs text-gray-400 mt-2 flex items-center justify-center"><ShieldAlert className="h-3 w-3 mr-1" /> Admin only. Invalidates old code.</p>
+              </div>
+            )}
+            
+            {/* Render hidden print badge */}
+            <VisitorBadge visitor={visitor} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <InfoCard title="Personal Details">
+        {/* Right Column: Details */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Personal Info */}
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-premium border border-gray-100 dark:border-gray-800 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h2>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Gender" value={v.gender} />
-              <Field label="Age" value={v.age} />
-              <Field label="Date of Birth" value={v.date_of_birth} />
-              <Field label="Marital Status" value={v.marital_status} />
-              <Field label="Occupation" value={v.occupation} />
-              <Field label="National ID" value={v.national_id} />
-            </div>
-          </InfoCard>
-
-          <InfoCard title="Contact Information">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Phone Number" value={v.phone_number} />
-              <Field label="WhatsApp" value={v.whatsapp_number} />
-              <Field label="Email" value={v.email} />
-              <Field label="Address" value={v.physical_address} />
-            </div>
-          </InfoCard>
-
-          <InfoCard title="Location & Visit">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="County" value={v.county} />
-              <Field label="Sub-County" value={v.sub_county} />
-              <Field label="Visitor Type" value={v.visitor_type} />
-              <Field label="Branch" value={v.branch_name} />
-              <Field label="Service Attended" value={v.service_name} />
-              <Field label="Invited By" value={v.name_of_inviter} />
-            </div>
-          </InfoCard>
-
-          <InfoCard title="Additional Information">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Emergency Contact" value={v.emergency_contact_name} />
-              <Field label="Emergency Phone" value={v.emergency_contact_phone} />
-              <Field label="Spouse Name" value={v.spouse_name} />
-              <Field label="Registered By" value={v.registered_by_name} />
-              <Field label="Registered On" value={new Date(v.created_at).toLocaleDateString()} />
-            </div>
-            {v.prayer_request && (
-              <div className="mt-4 rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/20">
-                <dt className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Prayer Request</dt>
-                <dd className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">{v.prayer_request}</dd>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Full Name</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{visitor.full_name}</p>
               </div>
-            )}
-          </InfoCard>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Registration Number</p>
+                <p className="text-sm font-mono font-medium text-brand-600 dark:text-brand-400">{visitor.registration_number}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Gender</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.gender}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Phone Number</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.phone_number}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.email || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Occupation</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.occupation || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Visit Info */}
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-premium border border-gray-100 dark:border-gray-800 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Visit Details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Visitor Type</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.visitor_type}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Seat Number</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.seat_number || 'N/A'}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Invited By</p>
+                <p className="text-sm text-gray-900 dark:text-white">{visitor.name_of_inviter || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
