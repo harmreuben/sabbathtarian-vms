@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from './api';
-import { Loader2, Plus, Settings2, Power } from 'lucide-react';
+import { Loader2, Plus, Settings2 } from 'lucide-react';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('services');
